@@ -23,7 +23,6 @@
 		console.log(inputs)
 		osc1.freq = inputs.find(i => i.endpointID === 'osc1Freq');
 		osc1Freq = osc1.freq.annotation.init;
-		console.log(osc1);
 	}
 
 </script>
@@ -149,14 +148,15 @@
 
 	</div>
 	<div class="reverb">
-		<button class:red={gateOn} on:click={ e => gateOn = !gateOn }>GATE</button>
 	</div>
 	<div class="delay"></div>
 	<div class="voicing"></div>
 	<div class="vcf"></div>
 	<div class="hpf"></div>
 	<div class="fine"></div>
-	<div class="branding"></div>
+	<div class="branding">
+		<button class:red={gateOn} on:click={ e => gateOn = !gateOn }>GATE</button>
+	</div>
 	<div class="reserved1"></div>
 	<div class="reserved2"></div>
 </div>
@@ -164,14 +164,26 @@
 <style>
 
 	@import url("https://unpkg.com/fluent-svelte/theme.css");
-
-	.red {
-		background-color:red;
-	}
-
+	
 	:global(:root) {
 		--fds-control-strong-fill-default : gray;
 	}
+
+	.branding > button.red {
+		background-color:tomato;
+	}
+
+	.branding > button {
+		font-size:100px;
+		background-color: transparent;
+		padding:12px;
+	}
+	.branding {
+		display:flex;
+		justify-content: center;
+		align-items: center;
+	}
+	
 	.flexline {
 		display:flex;
 		justify-content: space-evenly;
