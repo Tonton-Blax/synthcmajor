@@ -1,0 +1,14 @@
+{
+  "main": "buildscript.js",
+  "scripts": {
+    "build": "node buildscript.js"
+  },
+  "dependencies": {
+    "esbuild": "^0.12.29",
+    "esbuild-svelte": "^0.7.1",
+    "fluent-svelte": "^1.6.0",
+    "svelte": "^3.48.0",
+    "svelte-knob": "^1.0.2"
+  },
+  "private": true
+}

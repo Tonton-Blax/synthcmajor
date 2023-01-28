@@ -1,0 +1,102 @@
+//  //
+//  //     ,ad888ba,                                88
+//  //    d8"'    "8b
+//  //   d8            88,dPba,,adPba,   ,adPPYba,  88      The Cmajor Language
+//  //   88            88P'  "88"   "8a        '88  88
+//  //   Y8,           88     88     88  ,adPPPP88  88      (c)2022 Sound Stacks Ltd
+//  //    Y8a.   .a8P  88     88     88  88,   ,88  88      https://cmajor.dev
+//  //     '"Y888Y"'   88     88     88  '"8bbP"Y8  88
+//  //                                             ,88
+//  //                                           888P"
+
+
+graph AdditiveSynth  [[ main ]]
+{
+    input GateToNote.boolIn  [[ name: "boolIn", init: false, type: "bool" ]];
+    input freqHandler.osc1Freq [[ name: "Osc1Freq",  min: 40, max: 40000, init:  440, type: "float",  step: 1 ]];
+
+    output stream float audioOut;
+
+    node
+    {
+        voices = Voice[8];
+        freqHandler = FreqHandler;
+        voiceAllocator = std::voices::VoiceAllocator(8);
+    }
+
+
+    connection
+    {
+        GateToNote.noteOut -> std::midi::MPEConverter -> voiceAllocator;
+        voiceAllocator.voiceEventOut -> voices.noteOn,
+                                        voices.noteOff,
+                                        voices.pitchBend;
+
+        voices -> audioOut;
+    }
+}
+
+processor GateToNote
+{
+    input event bool boolIn;
+    output event std::midi::Message noteOut;
+
+    event boolIn (bool g) {
+        if (g) {
+            noteOut <- std::midi::createMessage (0x99, 0x23, 0x40);
+        } else {
+            noteOut <- std::midi::createMessage (0x89, 0x23, 0x00);
+        }
+    }
+}
+
+graph Voice
+{
+    input event
+    {
+        std::notes::NoteOn noteOn;
+        std::notes::NoteOff noteOff;
+        std::notes::PitchBend pitchBend;
+    }
+
+
+    output stream float audioOut;
+
+    node
+    {
+        envelope = std::envelopes::FixedASR (0.0f, 0.3f);
+        attenuator = std::levels::DynamicGain (float);
+        freqHandler = FreqHandler;
+        osc1 = std::oscillators::Sine (float, 440);
+    }
+
+    connection
+    {
+        noteOn, noteOff -> freqHandler.eventIn;
+        freqHandler -> osc1.frequencyIn;
+        noteOn, noteOff -> envelope -> attenuator.gain;   
+        osc1 -> attenuator.in;
+        attenuator -> audioOut;
+    }
+}
+
+processor FreqHandler
+{
+    input event (std::notes::NoteOn,std::notes::NoteOff) eventIn;
+    input event float osc1Freq;
+    output event float frequencyOut;
+
+    float processedFreq = 0.0f;
+    float noteFreq = 0.0f;
+    let freqFactor  = 1.5f;
+
+    event osc1Freq (float newFreq)  {
+        processedFreq = newFreq * freqFactor / 100.0f;
+        frequencyOut <- processedFreq + noteFreq;
+    }
+    
+    event eventIn (std::notes::NoteOn e) {
+        noteFreq = std::notes::noteToFrequency (e.pitch) + processedFreq;
+        frequencyOut <- noteFreq + processedFreq;
+    }
+}
