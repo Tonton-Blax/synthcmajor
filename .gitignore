@@ -1,4 +1,3 @@
-web_ui/dist
 web_ui/*.log
 web_ui/*lock.json
 web_ui/node_modules
