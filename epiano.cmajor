@@ -96,7 +96,7 @@ processor FreqHandler
     }
     
     event eventIn (std::notes::NoteOn e) {
-        noteFreq = std::notes::noteToFrequency (e.pitch) + processedFreq;
+        noteFreq = std::notes::noteToFrequency (e.pitch);
         frequencyOut <- noteFreq + processedFreq;
     }
 }
