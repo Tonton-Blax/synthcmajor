@@ -1,0 +1,26 @@
+[
+    {
+        "frameOffset": 10,
+        "event": {
+            "channel": 1,
+            "pitch": 69,
+            "velocity": 1
+        }
+    },
+    {
+        "frameOffset": 20,
+        "event": {
+            "channel": 1,
+            "pitch": 57,
+            "velocity": 1
+        }
+    },
+    {
+        "frameOffset": 50,
+        "event": {
+            "channel": 1,
+            "pitch": 69,
+            "velocity": 1
+        }
+    }
+]

@@ -1,0 +1,26 @@
+
+
+## runScript ({ sampleRate:44100, blockSize:32, samplesToRender:100, subDir:"freq_handler" })
+
+processor FreqHandler
+{
+    input event (std::notes::NoteOn,std::notes::NoteOff) eventIn;
+    input event float osc1Freq;
+    output event float frequencyOut;
+
+    float processedFreq = 0.0f;
+    float noteFreq = 0.0f;
+    let freqFactor  = 1.5f;
+
+    event osc1Freq (float newFreq)  {
+        processedFreq = newFreq * freqFactor / 100.0f;
+        frequencyOut <- processedFreq + noteFreq;
+        console <- processedFreq <- noteFreq;
+    }
+
+    event eventIn (std::notes::NoteOn e) {
+        noteFreq = std::notes::noteToFrequency (e.pitch);
+        frequencyOut <- noteFreq + processedFreq;
+        console <- processedFreq <- noteFreq;
+    }
+}
