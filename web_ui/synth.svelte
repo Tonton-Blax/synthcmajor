@@ -9,11 +9,14 @@
 	const dispatch = createEventDispatcher();
 
 	$: setupInputs (inputs)
-	$: dispatch('sendValue', { endpoint : 'osc1Freq', val : osc1Freq });
+	$: dispatch('sendValue', { endpoint : 'osc1FreqIn', val : osc1FreqIn });
+	$: dispatch('sendValue', { endpoint : 'osc2FreqIn', val : osc2FreqIn });
 	$: dispatch('sendValue', { endpoint : 'boolIn', val : gateOn })
 
-	let osc1Freq;
+	let osc1FreqIn;
+	let osc2FreqIn;
 	let osc1 = {};
+	let osc2 = {};
 	let gateOn = false;
 
 	const setupInputs = (inputs) => {
@@ -21,8 +24,10 @@
 		if (!Array.isArray(inputs))
 			return;
 		console.log(inputs)
-		osc1.freq = inputs.find(i => i.endpointID === 'osc1Freq');
-		osc1Freq = osc1.freq.annotation.init;
+		osc1.freq = inputs.find(i => i.endpointID === 'osc1FreqIn');
+		osc1FreqIn = osc1.freq.annotation.init;
+		osc2.freq = inputs.find(i => i.endpointID === 'osc2FreqIn');
+		osc2FreqIn = osc2.freq.annotation.init;
 	}
 
 </script>
@@ -87,7 +92,7 @@
 			<div class="flexline">
 				<div class="flexbox">
 					<Knob 
-						bind:value={osc1Freq} 
+						bind:value={osc1FreqIn} 
 						min={osc1?.freq?.annotation?.min} 
 						max={osc1?.freq?.annotation?.max}
 						step={10} strokeWidth={10} primaryColor="#E844C3" />
@@ -110,7 +115,11 @@
 			OSC2
 			<div class="flexline">
 				<div class="flexbox">
-					<Knob value={12} min={-60} max={60} step={1} strokeWidth={10} primaryColor="#E844C3" />
+					<Knob 
+						bind:value={osc2FreqIn} 
+						min={osc2?.freq?.annotation?.min} 
+						max={osc2?.freq?.annotation?.max}
+						step={10} strokeWidth={10} primaryColor="#E844C3" />
 					<div>Tuning</div>
 					<button state="active">sync</button>
 				</div>

@@ -1,19 +1,11 @@
-//  //
-//  //     ,ad888ba,                                88
-//  //    d8"'    "8b
-//  //   d8            88,dPba,,adPba,   ,adPPYba,  88      The Cmajor Language
-//  //   88            88P'  "88"   "8a        '88  88
-//  //   Y8,           88     88     88  ,adPPPP88  88      (c)2022 Sound Stacks Ltd
-//  //    Y8a.   .a8P  88     88     88  88,   ,88  88      https://cmajor.dev
-//  //     '"Y888Y"'   88     88     88  '"8bbP"Y8  88
-//  //                                             ,88
-//  //                                           888P"
+namespace Synthe {
 
 
-graph AdditiveSynth  [[ main ]]
+graph SynthMain  [[ main ]]
 {
     input GateToNote.boolIn  [[ name: "boolIn", init: false, type: "bool" ]];
-    input freqHandler.osc1Freq [[ name: "Osc1Freq",  min: 40, max: 40000, init:  440, type: "float",  step: 1 ]];
+    input freqHandler.osc1FreqIn [[ name: "Osc1FreqIn",  min: 40, max: 40000, init:  100, type: "float",  step: 1 ]];
+    input freqHandler.osc2FreqIn [[ name: "Osc2FreqIn",  min: 40, max: 40000, init:  100, type: "float",  step: 1 ]];
 
     output stream float audioOut;
 
@@ -27,26 +19,13 @@ graph AdditiveSynth  [[ main ]]
 
     connection
     {
-        GateToNote.noteOut -> std::midi::MPEConverter -> voiceAllocator;
+        GateToNote.noteOut -> std::midi::NoteToMIDI -> std::midi::MPEConverter -> voiceAllocator;
         voiceAllocator.voiceEventOut -> voices.noteOn,
-                                        voices.noteOff,
-                                        voices.pitchBend;
-
+            voices.noteOff,
+            voices.pitchBend;
+        freqHandler.osc1FreqOut -> voices.osc1FreqIn;
+        freqHandler.osc2FreqOut -> voices.osc2FreqIn;
         voices -> audioOut;
-    }
-}
-
-processor GateToNote
-{
-    input event bool boolIn;
-    output event std::midi::Message noteOut;
-
-    event boolIn (bool g) {
-        if (g) {
-            noteOut <- std::midi::createMessage (0x99, 0x23, 0x40);
-        } else {
-            noteOut <- std::midi::createMessage (0x89, 0x23, 0x00);
-        }
     }
 }
 
@@ -57,6 +36,8 @@ graph Voice
         std::notes::NoteOn noteOn;
         std::notes::NoteOff noteOff;
         std::notes::PitchBend pitchBend;
+        float osc1FreqIn;
+        float osc2FreqIn;
     }
 
 
@@ -66,37 +47,83 @@ graph Voice
     {
         envelope = std::envelopes::FixedASR (0.0f, 0.3f);
         attenuator = std::levels::DynamicGain (float);
-        freqHandler = FreqHandler;
         osc1 = std::oscillators::Sine (float, 440);
+        osc2 = std::oscillators::PolyblepOscillator (float, std::oscillators::Shape::sawtoothUp, 440);
+        ntof = noteToFrequency;
     }
 
     connection
     {
-        noteOn, noteOff -> freqHandler.eventIn;
-        freqHandler -> osc1.frequencyIn;
+        
+        noteOn, noteOff -> ntof;
+        ntof.frequencyOut, osc1FreqIn -> osc1.frequencyIn;
+        ntof.frequencyOut, osc2FreqIn -> osc2.frequencyIn;
         noteOn, noteOff -> envelope -> attenuator.gain;   
-        osc1 -> attenuator.in;
+        osc1.out + osc2.out -> attenuator.in;
         attenuator -> audioOut;
     }
 }
 
-processor FreqHandler
-{
+graph noteToFrequency {
     input event (std::notes::NoteOn,std::notes::NoteOff) eventIn;
-    input event float osc1Freq;
     output event float frequencyOut;
 
-    float processedFreq = 0.0f;
-    float noteFreq = 0.0f;
-    let freqFactor  = 1.5f;
+    event eventIn (std::notes::NoteOn note) {
+        frequencyOut <- std::notes::noteToFrequency(note.pitch);
+    }
+    event eventIn (std::notes::NoteOff note) {
+        frequencyOut <- 0.0f;
+    }
+}
 
-    event osc1Freq (float newFreq)  {
-        processedFreq = newFreq * freqFactor / 100.0f;
-        frequencyOut <- processedFreq + noteFreq;
+graph FreqHandler
+{
+    input event float osc1FreqIn;
+    input event float osc2FreqIn;
+    output event float osc1FreqOut;
+    output event float osc2FreqOut;
+
+    const float freqFactor  = 1.5f;
+
+    event osc1FreqIn (float newFreq)  {
+        osc1FreqOut <- newFreq * freqFactor / 100.0f;
     }
-    
-    event eventIn (std::notes::NoteOn e) {
-        noteFreq = std::notes::noteToFrequency (e.pitch);
-        frequencyOut <- noteFreq + processedFreq;
+    event osc2FreqIn (float newFreq)  {
+        osc2FreqOut <- newFreq * freqFactor / 100.0f;
     }
+}
+
+graph GateToNote
+{
+    input event bool boolIn;
+    output event (std::notes::NoteOn,
+                  std::notes::NoteOff) noteOut;
+    // This simple struct holds a note + duration for our melody
+
+
+    void play()
+    {
+        std::notes::NoteOn noteOn;
+        noteOn.pitch = 60.0f;
+        noteOn.velocity = 1.0f;
+        noteOut <- noteOn;
+    }
+
+    void stop()
+    {
+        std::notes::NoteOff noteOff;
+        noteOff.pitch = 60.0f;
+        noteOff.velocity = 1.0f;
+        noteOut <- noteOff;
+    }
+
+    event boolIn (bool g) {
+        if (g) {
+            play();
+        }
+        else
+            stop();        
+    }
+}
+
 }
