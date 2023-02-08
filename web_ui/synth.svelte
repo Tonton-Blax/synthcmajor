@@ -11,6 +11,7 @@
 	$: setupInputs (inputs)
 	$: dispatch('sendValue', { endpoint : 'osc1FreqIn', val : osc1FreqIn });
 	$: dispatch('sendValue', { endpoint : 'osc2FreqIn', val : osc2FreqIn });
+	$: console.log(osc2FreqIn, osc1FreqIn);
 	$: dispatch('sendValue', { endpoint : 'boolIn', val : gateOn })
 
 	let osc1FreqIn;

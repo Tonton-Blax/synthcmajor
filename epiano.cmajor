@@ -20,9 +20,7 @@ graph SynthMain  [[ main ]]
     connection
     {
         GateToNote.noteOut -> std::midi::NoteToMIDI -> std::midi::MPEConverter -> voiceAllocator;
-        voiceAllocator.voiceEventOut -> voices.noteOn,
-            voices.noteOff,
-            voices.pitchBend;
+        voiceAllocator.voiceEventOut -> voices.noteOn, voices.noteOff, voices.pitchBend;
         freqHandler.osc1FreqOut -> voices.osc1FreqIn;
         freqHandler.osc2FreqOut -> voices.osc2FreqIn;
         voices -> audioOut;
@@ -40,50 +38,41 @@ graph Voice
         float osc2FreqIn;
     }
 
-
     output stream float audioOut;
 
     node
     {
         envelope = std::envelopes::FixedASR (0.0f, 0.3f);
         attenuator = std::levels::DynamicGain (float);
+        ntf = NoteToFrequency;
         osc1 = std::oscillators::Sine (float, 440);
         osc2 = std::oscillators::PolyblepOscillator (float, std::oscillators::Shape::sawtoothUp, 440);
-        ntof = noteToFrequency;
     }
 
     connection
     {
-        
-        noteOn, noteOff -> ntof;
-        ntof.frequencyOut, osc1FreqIn -> osc1.frequencyIn;
-        ntof.frequencyOut, osc2FreqIn -> osc2.frequencyIn;
+        noteOn, noteOff -> ntf;
+        osc1FreqIn -> osc1.frequencyIn;
+        osc2FreqIn -> osc2.frequencyIn;
         noteOn, noteOff -> envelope -> attenuator.gain;   
         osc1.out + osc2.out -> attenuator.in;
         attenuator -> audioOut;
     }
 }
 
-graph noteToFrequency {
-    input event (std::notes::NoteOn,std::notes::NoteOff) eventIn;
-    output event float frequencyOut;
-
-    event eventIn (std::notes::NoteOn note) {
-        frequencyOut <- std::notes::noteToFrequency(note.pitch);
-    }
-    event eventIn (std::notes::NoteOff note) {
-        frequencyOut <- 0.0f;
-    }
-}
-
 graph FreqHandler
 {
-    input event float osc1FreqIn;
-    input event float osc2FreqIn;
-    output event float osc1FreqOut;
-    output event float osc2FreqOut;
+    input event {
+        float osc1FreqIn;
+        float osc2FreqIn;
+    }
 
-    const float freqFactor  = 1.5f;
+    output event {
+        float osc1FreqOut;
+        float osc2FreqOut;
+    }
+
+    const float freqFactor = 1.5f;
 
     event osc1FreqIn (float newFreq)  {
         osc1FreqOut <- newFreq * freqFactor / 100.0f;
@@ -126,4 +115,16 @@ graph GateToNote
     }
 }
 
+graph NoteToFrequency {
+    input event (std::notes::NoteOn,std::notes::NoteOff) eventIn;
+    output event float frequencyOut;
+
+    event eventIn (std::notes::NoteOn note) {
+        //frequencyOut <- std::notes::NoteToFrequency(note.pitch);
+        frequencyOut <- 380.0f;
+    }
+    event eventIn (std::notes::NoteOff note) {
+        frequencyOut <- 0.0f;
+    }
+}
 }
