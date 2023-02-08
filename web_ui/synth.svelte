@@ -11,24 +11,42 @@
 	$: setupInputs (inputs)
 	$: dispatch('sendValue', { endpoint : 'osc1FreqIn', val : osc1FreqIn });
 	$: dispatch('sendValue', { endpoint : 'osc2FreqIn', val : osc2FreqIn });
-	$: console.log(osc2FreqIn, osc1FreqIn);
+	$: dispatch('sendValue', { endpoint : 'attack', val : attack });
+	$: dispatch('sendValue', { endpoint : 'release', val : release });
+	$: dispatch('sendValue', { endpoint : 'decay', val : decay });
 	$: dispatch('sendValue', { endpoint : 'boolIn', val : gateOn })
 
 	let osc1FreqIn;
 	let osc2FreqIn;
-	let osc1 = {};
-	let osc2 = {};
+	let attack;
+	let decay;
+	let release;
+	const osc1 = {};
+	const osc2 = {};
+	const adsr1 = {}
 	let gateOn = false;
 
 	const setupInputs = (inputs) => {
 
 		if (!Array.isArray(inputs))
 			return;
+
 		console.log(inputs)
+
 		osc1.freq = inputs.find(i => i.endpointID === 'osc1FreqIn');
 		osc1FreqIn = osc1.freq.annotation.init;
+
 		osc2.freq = inputs.find(i => i.endpointID === 'osc2FreqIn');
 		osc2FreqIn = osc2.freq.annotation.init;
+
+		adsr1.attack = inputs.find(i => i.endpointID === 'attack');
+		attack = adsr1.attack.annotation.init;
+
+		adsr1.decay = inputs.find(i => i.endpointID === 'decay');
+		attack = adsr1.decay.annotation.init;
+
+		adsr1.release = inputs.find(i => i.endpointID === 'release');
+		release = adsr1.release.annotation.init;
 	}
 
 </script>
@@ -64,10 +82,29 @@
 	<div class="adsr1">
 			ENV1
 			<div class="flexline" style="height:150px;">
-				<div class="flexbox"><Slider orientation="vertical" value={24} />A</div>
-				<div class="flexbox"><Slider orientation="vertical" value={50} />D</div>
+				<div class="flexbox"><Slider orientation="vertical" 
+					min={adsr1?.attack?.annotation?.min} 
+					max={adsr1?.attack?.annotation?.max}
+					step={0.1}
+					bind:value={attack} 
+				/>
+					A
+				</div>
+				<div class="flexbox"><Slider orientation="vertical" 
+					min={adsr1?.decay?.annotation?.min} 
+					max={adsr1?.decay?.annotation?.max}
+					step={0.1}
+					bind:value={decay} />
+					D
+				</div>
 				<div class="flexbox"><Slider orientation="vertical" value={76} />S</div>
-				<div class="flexbox"><Slider orientation="vertical" value={24} />R</div>
+				<div class="flexbox"><Slider orientation="vertical"
+					min={adsr1?.release?.annotation?.min} 
+					max={adsr1?.release?.annotation?.max}
+					step={0.1}
+					bind:value={release} />
+					R
+				</div>
 				<div class="flexbox">
 						<button class="pt" state="active">snap</button>
 						<button class="pt" state="active">slow</button>
