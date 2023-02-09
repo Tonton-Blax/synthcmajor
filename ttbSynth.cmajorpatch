@@ -1,0 +1,18 @@
+{
+    "CmajorVersion":    1,
+    "ID":               "dev.cmajor.ttb.synth",
+    "version":          "1.0",
+    "name":             "Synth test",
+    "description":      "Just a synth test",
+    "category":         "generator",
+    "manufacturer":     "Ttb",
+    "isInstrument":     true,
+
+    "source":           ["ttbSynth.cmajor","adsre.cmajor"],
+    "view": {
+        "src": "web_ui/dist/entry.js",
+        "width": 1210,
+        "height": 880,
+        "resizable": false
+    }
+}
