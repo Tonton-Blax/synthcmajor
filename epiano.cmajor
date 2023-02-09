@@ -1,217 +1,150 @@
-namespace Synthe {
+graph SynthMain  [[ main ]]
+{
+    input GateToNote.boolIn  [[ name: "boolIn", init: false, type: "bool" ]];
+    input freqHandler.osc1FreqIn [[ name: "Osc1FreqIn",  min: 40, max: 40000, init:  10000, type: "float",  step: 1 ]];
+    input freqHandler.osc2FreqIn [[ name: "Osc2FreqIn",  min: 40, max: 40000, init:  20000, type: "float",  step: 1 ]];
+    input event float release [[ name: "release",  min: 0.001, max: 500, init:  1, type: "float",  step: 0.1 ]];
+    input event float attack [[ name: "attack",  min: 0, max: 500, init:  1, type: "float",  step: 0.1 ]];
+    input event float decay [[ name: "decay",  min: 0, max: 100, init:  1, type: "float",  step: 0.1 ]];
+    input event float sustain [[ name: "sustain",  min: 0, max: 1, init:  0.5, type: "float",  step: 0.01 ]];
 
+    output stream float audioOut;
 
-    graph SynthMain  [[ main ]]
+    node
     {
-        input GateToNote.boolIn  [[ name: "boolIn", init: false, type: "bool" ]];
-        input freqHandler.osc1FreqIn [[ name: "Osc1FreqIn",  min: 40, max: 40000, init:  100, type: "float",  step: 1 ]];
-        input freqHandler.osc2FreqIn [[ name: "Osc2FreqIn",  min: 40, max: 40000, init:  100, type: "float",  step: 1 ]];
-        input event float release [[ name: "release",  min: 0, max: 13, init:  1, type: "float",  step: 0.1 ]];
-        input event float attack [[ name: "attack",  min: 0, max: 3, init:  1, type: "float",  step: 0.1 ]];
-        input event float decay [[ name: "decay",  min: 0, max: 3, init:  1, type: "float",  step: 0.1 ]];
-
-        output stream float audioOut;
-
-        node
-        {
-            voices = Voice[8];
-            freqHandler = FreqHandler;
-            voiceAllocator = std::voices::VoiceAllocator(8);
-            asr = ASR;
-        }
-
-
-        connection
-        {
-            GateToNote.noteOut -> std::midi::NoteToMIDI -> std::midi::MPEConverter -> voiceAllocator;
-            voiceAllocator.voiceEventOut -> voices.noteOn, voices.noteOff, voices.pitchBend;
-            freqHandler.osc1FreqOut -> voices.osc1FreqIn;
-            freqHandler.osc2FreqOut -> voices.osc2FreqIn;
-            attack -> voices.attack;
-            release -> voices.release;
-            voices -> audioOut;
-        }
-    }
-
-    graph Voice
-    {
-        input event
-        {
-            std::notes::NoteOn noteOn;
-            std::notes::NoteOff noteOff;
-            std::notes::PitchBend pitchBend;
-            float osc1FreqIn;
-            float osc2FreqIn;
-            float attack;
-            float release;
-            float decay;
-        }
-
-        output stream float audioOut;
-
-        node
-        {
-            envelope = ASR;
-            attenuator = std::levels::DynamicGain (float);
-            ntf = NoteToFrequency;
-            osc1 = std::oscillators::Sine (float, 440);
-            osc2 = std::oscillators::PolyblepOscillator (float, std::oscillators::Shape::sawtoothUp, 440);
-        }
-
-        connection
-        {
-            noteOn, noteOff -> ntf;
-            osc1FreqIn -> osc1.frequencyIn;
-            osc2FreqIn -> osc2.frequencyIn;
-            attack -> envelope.attack;
-            decay -> envelope.decay;
-            release -> envelope.release;
-            noteOn, noteOff -> envelope.eventIn;
-            envelope.gainOut -> attenuator.gain;   
-            osc1.out + osc2.out -> attenuator.in;
-            attenuator -> audioOut;
-        }
-    }
-
-    graph FreqHandler
-    {
-        input event {
-            float osc1FreqIn;
-            float osc2FreqIn;
-        }
-
-        output event {
-            float osc1FreqOut;
-            float osc2FreqOut;
-        }
-
-        const float freqFactor = 1.5f;
-
-        event osc1FreqIn (float newFreq)  {
-            osc1FreqOut <- newFreq * freqFactor / 100.0f;
-        }
-        event osc2FreqIn (float newFreq)  {
-            osc2FreqOut <- newFreq * freqFactor / 100.0f;
-        }
-    }
-
-    graph GateToNote
-    {
-        input event bool boolIn;
-        output event (std::notes::NoteOn,
-                    std::notes::NoteOff) noteOut;
-        // This simple struct holds a note + duration for our melody
-
-
-        void play()
-        {
-            std::notes::NoteOn noteOn;
-            noteOn.pitch = 60.0f;
-            noteOn.velocity = 1.0f;
-            noteOut <- noteOn;
-        }
-
-        void stop()
-        {
-            std::notes::NoteOff noteOff;
-            noteOff.pitch = 60.0f;
-            noteOff.velocity = 1.0f;
-            noteOut <- noteOff;
-        }
-
-        event boolIn (bool g) {
-            if (g) {
-                play();
-            }
-            else
-                stop();        
-        }
-    }
-
-    graph NoteToFrequency {
-        input event (std::notes::NoteOn,std::notes::NoteOff) eventIn;
-        output event float frequencyOut;
-
-        event eventIn (std::notes::NoteOn note) {
-            //frequencyOut <- std::notes::NoteToFrequency(note.pitch);
-            frequencyOut <- 380.0f;
-        }
-        event eventIn (std::notes::NoteOff note) {
-            frequencyOut <- 0.0f;
-        }
+        voices = Voice[8];
+        freqHandler = FreqHandler;
+        voiceAllocator = std::voices::VoiceAllocator(8);
+        asr = ADSRE;
     }
 
 
-    processor ASR
+    connection
     {
-        input event (std::notes::NoteOn,
-                     std::notes::NoteOff) eventIn;
+        GateToNote.noteOut -> std::midi::NoteToMIDI -> std::midi::MPEConverter -> voiceAllocator;
+        voiceAllocator.voiceEventOut -> voices.noteOn, voices.noteOff, voices.pitchBend;
+        freqHandler.osc1FreqOut -> voices.osc1FreqIn;
+        freqHandler.osc2FreqOut -> voices.osc2FreqIn;
+        attack -> voices.attack;
+        decay -> voices.decay;
+        sustain -> voices.sustain;
+        release -> voices.release;
+        voices -> audioOut;
+    }
+}
 
-        input event float attack;
-        input event float release;
-        input event float decay;
-        output stream float gainOut;
+graph Voice
+{
+    input event
+    {
+        std::notes::NoteOn noteOn;
+        std::notes::NoteOff noteOff;
+        std::notes::PitchBend pitchBend;
+        float osc1FreqIn;
+        float osc2FreqIn;
+        float attack;
+        float release;
+        float sustain;
+        float decay;
+    }
 
-        float attackSeconds = 1.0f;
-        float releaseSeconds = 1.0f;
-        float decayTime;
-        const float inverseSampleRate = 1.0f / float32(processor.frequency);
+    output stream float audioOut;
+    const float myPi = float32(3.14159265359);
 
-        float keyDownVelocity, currentLevel;
+    node
+    {
+        envelope = ADSRE;
+        attenuator = std::levels::DynamicGain (float);
+        ntf = NoteToFrequency;
+        osc1 = std::oscillators::Sine (float, 440);
+        osc2 = std::oscillators::PolyblepOscillator (float, std::oscillators::Shape::sawtoothUp, 440);
+        smooth = std::filters::tpt::svf::Processor(std::filters::tpt::svf::Mode::highPass, 60, 5);
+    }
 
-        event eventIn (std::notes::NoteOn noteOn)        { keyDownVelocity = noteOn.velocity; }
-        event eventIn (std::notes::NoteOff noteOff)      { keyDownVelocity = 0; }
+    float32 preSmooth(float32 a, float32 b) {
+        return float32( 0.5 * std::intrinsics::tanh(a) ) + float32( 0.5 * std::intrinsics::tanh(b) );
+    }
 
-        event attack (float a) { attackSeconds = a; }
-        event release (float r) { releaseSeconds = r; }
-        event decay (float d) { decayTime = d; }
+    connection
+    {
+        noteOn, noteOff -> ntf;
+        osc1FreqIn -> osc1.frequencyIn;
+        osc2FreqIn -> osc2.frequencyIn;
+        attack -> envelope.attack;
+        decay -> envelope.decay;
+        sustain -> envelope.sustain;
+        release -> envelope.release;
+        noteOn, noteOff -> envelope.eventIn;
+        envelope.gainOut -> attenuator.gain;
+        preSmooth(osc1.out, osc2.out) ->  smooth.in;
+        smooth.out -> attenuator.in;
+        attenuator -> audioOut;
+    }
+}
 
-        void main()
-        {
-            loop
-            {
-                while (keyDownVelocity == 0)
-                    advance();
+graph FreqHandler
+{
+    input event {
+        float osc1FreqIn;
+        float osc2FreqIn;
+    }
 
-                if (attackSeconds > 0)
-                {
-                    let attackExponent = 1.0f / int32 (attackSeconds * float32 (processor.frequency));
-                    let attackMultiplier = 2.0f ** -attackExponent
-                                           * (2.0f + keyDownVelocity) ** attackExponent;
+    output event {
+        float osc1FreqOut;
+        float osc2FreqOut;
+    }
 
-                    while (currentLevel < keyDownVelocity)
-                    {
-                        gainOut <- currentLevel;
-                        currentLevel = attackMultiplier * (currentLevel + 2.0f) - 2.0f;
-                        advance();
-                    }
-                }
-                else
-                {
-                    currentLevel = keyDownVelocity;
-                }
+    const float freqFactor = 1.5f;
 
-                while (keyDownVelocity != 0)
-                {
-                    gainOut <- currentLevel;
-                    advance();
-                }
+    event osc1FreqIn (float newFreq)  {
+        osc1FreqOut <- newFreq * freqFactor / 100.0f;
+    }
+    event osc2FreqIn (float newFreq)  {
+        osc2FreqOut <- newFreq * freqFactor / 100.0f;
+    }
+}
 
-                if (releaseSeconds > 0)
-                {
-                    let decayFactor = pow (0.0001f, float32 (processor.period) / (releaseSeconds));
-                    //let decayFactor = pow (0.0001f, float32 (processor.period) / decayTime);
-                    //float decayFactor = std::intrinsics::exp(-inverseSampleRate * std::intrinsics::exp(5.5f - 0.075f * decayTime));
-                    //synth.envDecay = std::exp(-inverseSampleRate * std::exp(5.5f - 0.075f * envDecayParam->get()));
+graph GateToNote
+{
+    input event bool boolIn;
+    output event (std::notes::NoteOn,
+                std::notes::NoteOff) noteOut;
 
-                    while (keyDownVelocity == 0 && currentLevel > 0.0001f)
-                    {
-                        gainOut <- currentLevel;
-                        currentLevel *= decayFactor;
-                        advance();
-                    }
-                }
-            }
+
+    void play()
+    {
+        std::notes::NoteOn noteOn;
+        noteOn.pitch = 60.0f;
+        noteOn.velocity = 1.0f;
+        noteOut <- noteOn;
+    }
+
+    void stop()
+    {
+        std::notes::NoteOff noteOff;
+        noteOff.pitch = 60.0f;
+        noteOff.velocity = 1.0f;
+        noteOut <- noteOff;
+    }
+
+    event boolIn (bool g) {
+        if (g) {
+            play();
         }
+        else
+            stop();        
+    }
+}
+
+graph NoteToFrequency {
+    input event (std::notes::NoteOn,std::notes::NoteOff) eventIn;
+    output event float frequencyOut;
+
+    event eventIn (std::notes::NoteOn note) {
+        //frequencyOut <- std::notes::NoteToFrequency(note.pitch);
+        frequencyOut <- 380.0f;
+    }
+    event eventIn (std::notes::NoteOff note) {
+        frequencyOut <- 0.0f;
     }
 }

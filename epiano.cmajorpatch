@@ -8,7 +8,7 @@
     "manufacturer":     "Sound Stacks Ltd",
     "isInstrument":     true,
 
-    "source":           "epiano.cmajor",
+    "source":           ["epiano.cmajor","adsre.cmajor"],
     "view": {
         "src": "web_ui/dist/entry.js",
         "width": 1210,

@@ -14,6 +14,7 @@
 	$: dispatch('sendValue', { endpoint : 'attack', val : attack });
 	$: dispatch('sendValue', { endpoint : 'release', val : release });
 	$: dispatch('sendValue', { endpoint : 'decay', val : decay });
+	$: dispatch('sendValue', { endpoint : 'sustain', val : sustain });
 	$: dispatch('sendValue', { endpoint : 'boolIn', val : gateOn })
 
 	let osc1FreqIn;
@@ -21,6 +22,7 @@
 	let attack;
 	let decay;
 	let release;
+	let sustain;
 	const osc1 = {};
 	const osc2 = {};
 	const adsr1 = {}
@@ -44,6 +46,9 @@
 
 		adsr1.decay = inputs.find(i => i.endpointID === 'decay');
 		attack = adsr1.decay.annotation.init;
+
+		adsr1.sustain = inputs.find(i => i.endpointID === 'sustain');
+		attack = adsr1.sustain.annotation.init;
 
 		adsr1.release = inputs.find(i => i.endpointID === 'release');
 		release = adsr1.release.annotation.init;
@@ -85,7 +90,7 @@
 				<div class="flexbox"><Slider orientation="vertical" 
 					min={adsr1?.attack?.annotation?.min} 
 					max={adsr1?.attack?.annotation?.max}
-					step={0.1}
+					step={adsr1?.sustain?.annotation?.step}
 					bind:value={attack} 
 				/>
 					A
@@ -93,15 +98,20 @@
 				<div class="flexbox"><Slider orientation="vertical" 
 					min={adsr1?.decay?.annotation?.min} 
 					max={adsr1?.decay?.annotation?.max}
-					step={0.1}
+					step={adsr1?.sustain?.annotation?.step}
 					bind:value={decay} />
 					D
 				</div>
-				<div class="flexbox"><Slider orientation="vertical" value={76} />S</div>
+				<div class="flexbox"><Slider orientation="vertical" min={adsr1?.sustain?.annotation?.min} 
+					max={adsr1?.sustain?.annotation?.max}
+					step={adsr1?.sustain?.annotation?.step}
+					bind:value={sustain} />
+					S
+				</div>
 				<div class="flexbox"><Slider orientation="vertical"
 					min={adsr1?.release?.annotation?.min} 
 					max={adsr1?.release?.annotation?.max}
-					step={0.1}
+					step={adsr1?.sustain?.annotation?.step}
 					bind:value={release} />
 					R
 				</div>

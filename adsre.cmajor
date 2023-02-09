@@ -1,0 +1,178 @@
+/* ------------------------------------------------------------
+name: "simpleSynth", "FaustDSP"
+version: "2.54.11"
+Code generated with Faust 2.52.7 (https://faust.grame.fr)
+Compilation options: -a /usr/local/share/faust/cmajor/minimal.cmajor -lang cmajor -cn simpleSynth -es 1 -mcd 16 -single -ftz 0
+------------------------------------------------------------ */
+/************************************************************************ 
+ IMPORTANT NOTE : this file contains two clearly delimited sections :
+ the ARCHITECTURE section (in two parts) and the USER section. Each section
+ is governed by its own copyright and license. Please check individually
+ each section for license and copyright information.
+ *************************************************************************/
+
+/******************* BEGIN minimal.cmajor ****************/
+
+/************************************************************************
+ FAUST Architecture File
+ Copyright (C) 2003-2019 GRAME, Centre National de Creation Musicale
+ ---------------------------------------------------------------------
+ This Architecture section is free software; you can redistribute it
+ and/or modify it under the terms of the GNU General Public License
+ as published by the Free Software Foundation; either version 3 of
+ the License, or (at your option) any later version.
+ 
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with this program; If not, see <http://www.gnu.org/licenses/>.
+ 
+ EXCEPTION : As a special exception, you may create a larger work
+ that contains this FAUST architecture section and distribute
+ that work under terms of your choice, so long as this FAUST
+ architecture section is not modified.
+ 
+ ************************************************************************
+ ************************************************************************/
+ 
+//----------------------------------------------------------------------------
+//  FAUST generated signal processor
+//----------------------------------------------------------------------------
+
+processor ADSRE
+{
+	input event float32 attack [[ name: "attack", min: 0.1f, max: 4e+02f, init: 0.1f, step: 0.001f, meta_midi0: "ctrl 73" ]];
+	input event float32 decay [[ name: "decay", min: 0.1f, max: 4e+02f, init: 6e+01f, step: 0.001f, meta_midi1: "ctrl 76" ]];
+	input event (std::notes::NoteOn, std::notes::NoteOff) eventIn;
+	input event float32 release [[ name: "release", min: 0.1f, max: 4e+02f, init: 1e+02f, step: 0.001f, meta_midi2: "ctrl 72" ]];
+	input event float32 sustain [[ name: "sustain", min: 0.0f, max: 1.0f, init: 0.1f, step: 0.001f, meta_midi3: "ctrl 77" ]];
+	output stream float32 gainOut;
+
+	float32 fButton0;
+	int32[2] iVec0;
+	float32 fHslider0;
+	float32 fHslider1;
+	int32 fSampleRate;
+	float32 fConst1;
+	int32[2] iRec1;
+	float32 fHslider2;
+	float32 fConst2;
+	float32 fHslider3;
+	float32[2] fRec0;
+	bool fUpdated;
+	int32[2] iControl;
+	float32[6] fControl;
+	const int attackMultiplier = 8;
+	
+	event attack (float32 val) { fHslider1 = val; fUpdated = true; } 
+	event decay (float32 val) { fHslider2 = val; fUpdated = true; }
+	event eventIn (std::notes::NoteOn noteOn)        { fButton0 = float(noteOn.velocity); fUpdated = true; }
+	event eventIn (std::notes::NoteOff noteOff)      { fButton0 = 0.0f; fUpdated = true; }
+	event release (float32 val) { fHslider0 = val; fUpdated = true; }
+	event sustain (float32 val) { fHslider3 = val; fUpdated = true; }
+	
+	float32 copysign(float32 x, float32 y) { return abs(x) * ((y < 0.0f) ? -1.0f : 1.0f); }
+	
+	int getNumInputs() { return 0; }
+	
+	int getNumOuputs() { return 1; }
+	
+	void classInit (int sample_rate)
+	{
+	}
+	
+	void instanceConstants (int sample_rate)
+	{
+		fSampleRate = sample_rate;
+		float32 fConst0 = attackMultiplier * (min (1.92e+05f, max (1.0f, float32 (fSampleRate))));
+		fConst1 = 0.01f * fConst0;
+		fConst2 = 1.0f / fConst0;
+	}
+	
+	void instanceResetUserInterface()
+	{
+		fUpdated = true;
+		fButton0 = 0.0f;
+		fHslider0 = 1e+02f;
+		fHslider1 = 0.1f;
+		fHslider2 = 6e+01f;
+		fHslider3 = 0.1f;
+	}
+	
+	void instanceClear()
+	{
+		for (int32 l0 = 0; l0 < 2; l0 = l0 + 1) {
+			iVec0.at (l0) = 0;
+		}
+		for (int32 l1 = 0; l1 < 2; l1 = l1 + 1) {
+			iRec1.at (l1) = 0;
+		}
+		for (int32 l2 = 0; l2 < 2; l2 = l2 + 1) {
+			fRec0.at (l2) = 0.0f;
+		}
+	}
+	
+	void init()
+	{
+		let sample_rate = int(processor.frequency);
+		// classInit is not called here since the tables are actually not shared between instances
+		instanceInit (sample_rate);
+	}
+	
+	void instanceInit (int sample_rate)
+	{
+		// classInit has to be called for each instance since the tables are actually not shared between instances
+		classInit (sample_rate);
+		instanceConstants (sample_rate);
+		instanceResetUserInterface();
+		instanceClear();
+	}
+	
+	void control()
+	{
+		iControl[0] = int (fButton0 > 0.0f);
+		fControl[0] = 0.01f * fHslider0;
+		fControl[1] = fHslider1;
+		iControl[1] = int32 (fConst1 * fControl[1]);
+		fControl[2] = 0.01f * fHslider2;
+		fControl[3] = 0.01f * fControl[1];
+		fControl[4] = float32 (iControl[0]);
+		fControl[5] = fHslider3 * fControl[4];
+	}
+
+	void main()
+	{
+		// DSP loop running forever...
+		loop
+		{
+			if (fUpdated) { fUpdated = false; control(); }
+			
+			// Computes one sample
+			iVec0[0] = iControl[0];
+			int32 iTemp0 = iControl[0] - iVec0[1];
+			iRec1[0] = iControl[0] * (iRec1[1] + 1);
+			int32 iTemp1 = int32 ((int (iRec1[0] < iControl[1]))) | int32 ((iTemp0 * (int (iTemp0 > 0))));
+			float32 fElse1 = (bool (iTemp1) ? fControl[3] : fControl[2]);
+			float32 fTemp2 = 0.1447178f * (bool (iControl[0]) ? fElse1 : fControl[0]);
+			int32 iTemp3 = int (abs (fTemp2) < 1.1920929e-07f);
+			float32 fThen3 = exp (0.0f - fConst2 / (bool (iTemp3) ? 1.0f : fTemp2));
+			float32 fTemp4 = (bool (iTemp3) ? 0.0f : fThen3);
+			float32 fElse5 = (bool (iTemp1) ? fControl[4] : fControl[5]);
+			fRec0[0] = (1.0f - fTemp4) * (bool (iControl[0]) ? fElse5 : 0.0f) + fTemp4 * fRec0[1];
+			gainOut <- fRec0[0];
+			iVec0[1] = iVec0[0];
+			iRec1[1] = iRec1[0];
+			fRec0[1] = fRec0[0];
+			
+			// Moves all streams forward by one 'tick'
+			advance();
+		}
+	}
+}
+
+// Nothing more for now
+
+/******************** END minimal.cmajor ****************/
