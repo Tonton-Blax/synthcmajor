@@ -171,7 +171,7 @@ processor NoteToFrequency {
     output event float frequencyOut;
 
     wrap<8> voiceIndex;
-    const int detuningFactor = 4;
+    int detuningFactor = 4;
 
     event detuning (int d) {
         detuningFactor = d;
