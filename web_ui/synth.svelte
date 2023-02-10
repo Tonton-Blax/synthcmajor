@@ -61,7 +61,6 @@
 		decay = adsr1.decay.annotation.init;
 
 		adsr1.sustain = inputs.find(i => i.endpointID === 'sustain');
-		attack = adsr1.sustain.annotation.init;
 		sustain = adsr1.sustain.annotation.init;
 
 		adsr1.release = inputs.find(i => i.endpointID === 'release');
