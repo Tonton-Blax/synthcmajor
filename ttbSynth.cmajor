@@ -1,4 +1,4 @@
-graph SynthMain  [[ main ]]
+graph SynthMain [[ main ]]
 {
     input GateToNote.boolIn  [[ name: "boolIn", init: false, type: "bool" ]];
     input freqHandler.osc1FreqIn [[ name: "Osc1FreqIn",  min: 40, max: 40000, init:  10000, type: "float",  step: 1 ]];
@@ -62,14 +62,15 @@ graph Voice
     }
 
     float32 preSmooth(float32 a, float32 b) {
+        // I have no idea what i'm doing
         return float32( 0.5 * std::intrinsics::tanh(a) ) + float32( 0.5 * std::intrinsics::tanh(b) );
     }
 
     connection
     {
-        noteOn, noteOff -> ntf;
-        osc1FreqIn -> osc1.frequencyIn;
-        osc2FreqIn -> osc2.frequencyIn;
+        noteOn, noteOff -> ntf.eventIn;
+        ntf.frequencyOut, osc1FreqIn -> osc1.frequencyIn;
+        ntf.frequencyOut, osc2FreqIn -> osc2.frequencyIn;
         attack -> envelope.attack;
         decay -> envelope.decay;
         sustain -> envelope.sustain;
@@ -111,40 +112,52 @@ graph GateToNote
                 std::notes::NoteOff) noteOut;
 
 
-    void play()
+    void play(int p)
     {
         std::notes::NoteOn noteOn;
-        noteOn.pitch = 60.0f;
+        noteOn.pitch = float(p);
         noteOn.velocity = 1.0f;
         noteOut <- noteOn;
     }
 
-    void stop()
+    void stop(int p)
     {
         std::notes::NoteOff noteOff;
-        noteOff.pitch = 60.0f;
+        noteOff.pitch = float(p);
         noteOff.velocity = 1.0f;
         noteOut <- noteOff;
     }
 
     event boolIn (bool g) {
+        std::random::RNG rng = (processor.session);
+        let pitch = 50 + wrap<60>(rng.getInt32());
+
         if (g) {
-            play();
+            play(pitch);
         }
         else
-            stop();        
+            stop(pitch);
     }
 }
 
-graph NoteToFrequency {
+processor NoteToFrequency {
     input event (std::notes::NoteOn,std::notes::NoteOff) eventIn;
+    input event int detuning;
     output event float frequencyOut;
+
+    wrap<8> voiceIndex;
+    int detuningFactor = 4;
+
+    event detuning (int d) {
+        detuningFactor = d;
+    }
 
     event eventIn (std::notes::NoteOn note) {
         //frequencyOut <- std::notes::NoteToFrequency(note.pitch);
-        frequencyOut <- 380.0f;
+        frequencyOut <- note.pitch + float(++voiceIndex * detuningFactor);
     }
     event eventIn (std::notes::NoteOff note) {
+        ++voiceIndex;
         frequencyOut <- 0.0f;
     }
 }
