@@ -19,10 +19,12 @@
       inputs = inputEndpoints;
     };
 
+    /*
     patch.onParameterEndpointChanged = (...args)=>console.log('onParameterEndpointChanged' , args);
     patch.onSampleRateChanged = (...args)=>console.log('onSampleRateChanged' , args);
     patch.onParameterEndpointChanged = (...args)=>console.log('onParameterEndpointChanged' , args);
     patch.onOutputEvent = (...args)=>console.log('onOutputEvent' , args);
+    */
     const manifest = patch.requestStatusUpdate();
   })
 

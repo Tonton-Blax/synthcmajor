@@ -3,6 +3,9 @@ graph SynthMain [[ main ]]
     input GateToNote.boolIn  [[ name: "boolIn", init: false, type: "bool" ]];
     input freqHandler.osc1FreqIn [[ name: "Osc1FreqIn",  min: 40, max: 40000, init:  10000, type: "float",  step: 1 ]];
     input freqHandler.osc2FreqIn [[ name: "Osc2FreqIn",  min: 40, max: 40000, init:  20000, type: "float",  step: 1 ]];
+    input freqHandler.osc1Volume [[ name: "osc1Volume",  min: 0, max: 1, init:  0.5, type: "float",  step: 0.01 ]];
+    input freqHandler.osc2Volume [[ name: "osc2Volume",  min: 0, max: 1, init:  0.5, type: "float",  step: 0.01 ]];
+    input freqHandler.osc2Shape [[ name: "osc2Shape",  min: 0, max: 5, init:  0.5, type: "float",  step: 0.1 ]];
     input event float release [[ name: "release",  min: 0.001, max: 500, init:  1, type: "float",  step: 0.1 ]];
     input event float attack [[ name: "attack",  min: 0, max: 500, init:  1, type: "float",  step: 0.1 ]];
     input event float decay [[ name: "decay",  min: 0, max: 100, init:  1, type: "float",  step: 0.1 ]];
@@ -25,6 +28,9 @@ graph SynthMain [[ main ]]
         voiceAllocator.voiceEventOut -> voices.noteOn, voices.noteOff, voices.pitchBend;
         freqHandler.osc1FreqOut -> voices.osc1FreqIn;
         freqHandler.osc2FreqOut -> voices.osc2FreqIn;
+        freqHandler.osc1VolumeOut -> voices.osc1Volume;
+        freqHandler.osc2VolumeOut -> voices.osc2Volume;
+        freqHandler.osc2ShapeOut -> voices.osc2Shape;
         attack -> voices.attack;
         decay -> voices.decay;
         sustain -> voices.sustain;
@@ -36,7 +42,7 @@ graph SynthMain [[ main ]]
 graph Voice
 {
     input event
-    {
+    {   
         std::notes::NoteOn noteOn;
         std::notes::NoteOff noteOff;
         std::notes::PitchBend pitchBend;
@@ -46,6 +52,12 @@ graph Voice
         float release;
         float sustain;
         float decay;
+        float osc2Shape;
+    }
+
+    input value {
+        float osc1Volume;
+        float osc2Volume;
     }
 
     output stream float audioOut;
@@ -63,12 +75,13 @@ graph Voice
 
     float32 preSmooth(float32 a, float32 b) {
         // I have no idea what i'm doing
-        return float32( 0.5 * std::intrinsics::tanh(a) ) + float32( 0.5 * std::intrinsics::tanh(b) );
+        return float32( osc1Volume * std::intrinsics::tanh(a) ) + float32( osc2Volume * std::intrinsics::tanh(b) );
     }
 
     connection
     {
         noteOn, noteOff -> ntf.eventIn;
+        osc2Shape -> osc2.shapeIn;
         ntf.frequencyOut, osc1FreqIn -> osc1.frequencyIn;
         ntf.frequencyOut, osc2FreqIn -> osc2.frequencyIn;
         attack -> envelope.attack;
@@ -77,7 +90,7 @@ graph Voice
         release -> envelope.release;
         noteOn, noteOff -> envelope.eventIn;
         envelope.gainOut -> attenuator.gain;
-        preSmooth(osc1.out, osc2.out) ->  smooth.in;
+        preSmooth(osc1.out, osc2.out) -> smooth.in;
         smooth.out -> attenuator.in;
         attenuator -> audioOut;
     }
@@ -88,12 +101,19 @@ graph FreqHandler
     input event {
         float osc1FreqIn;
         float osc2FreqIn;
+        float osc2Shape;
     }
+    input value float osc1Volume;
+    input value float osc2Volume;
 
     output event {
         float osc1FreqOut;
         float osc2FreqOut;
+        float osc2ShapeOut;
     }
+    output value float osc1VolumeOut;
+    output value float osc2VolumeOut;
+
 
     const float freqFactor = 1.5f;
 
@@ -102,6 +122,11 @@ graph FreqHandler
     }
     event osc2FreqIn (float newFreq)  {
         osc2FreqOut <- newFreq * freqFactor / 100.0f;
+    }
+    connection {
+        osc2Shape -> osc2ShapeOut;
+        osc1Volume -> osc1VolumeOut;
+        osc2Volume -> osc2VolumeOut;
     }
 }
 
@@ -157,7 +182,6 @@ processor NoteToFrequency {
         frequencyOut <- note.pitch + float(++voiceIndex * detuningFactor);
     }
     event eventIn (std::notes::NoteOff note) {
-        ++voiceIndex;
         frequencyOut <- 0.0f;
     }
 }

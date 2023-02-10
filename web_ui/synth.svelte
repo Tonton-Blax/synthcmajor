@@ -16,6 +16,9 @@
 	$: dispatch('sendValue', { endpoint : 'decay', val : decay });
 	$: dispatch('sendValue', { endpoint : 'sustain', val : sustain });
 	$: dispatch('sendValue', { endpoint : 'boolIn', val : gateOn })
+	$: dispatch('sendValue', { endpoint : 'osc2Shape', val : osc2Shape })
+	$: dispatch('sendValue', { endpoint : 'osc1Volume', val : osc1Volume })
+	$: dispatch('sendValue', { endpoint : 'osc2Volume', val : osc2Volume })
 
 	let osc1FreqIn;
 	let osc2FreqIn;
@@ -23,6 +26,9 @@
 	let decay;
 	let release;
 	let sustain;
+	let osc1Volume;
+	let osc2Volume;
+	let osc2Shape;
 	const osc1 = {};
 	const osc2 = {};
 	const adsr1 = {}
@@ -33,10 +39,17 @@
 		if (!Array.isArray(inputs))
 			return;
 
-		console.log(inputs)
-
 		osc1.freq = inputs.find(i => i.endpointID === 'osc1FreqIn');
 		osc1FreqIn = osc1.freq.annotation.init;
+
+		osc1.volume = inputs.find(i => i.endpointID === 'osc1Volume');
+		osc1Volume = osc1.volume.annotation.init;
+
+		osc2.volume = inputs.find(i => i.endpointID === 'osc2Volume');
+		osc2Volume = osc2.volume.annotation.init;
+
+		osc2.shape = inputs.find(i => i.endpointID === 'osc2Shape');
+		osc2Shape = osc2.shape.annotation.init;
 
 		osc2.freq = inputs.find(i => i.endpointID === 'osc2FreqIn');
 		osc2FreqIn = osc2.freq.annotation.init;
@@ -45,10 +58,11 @@
 		attack = adsr1.attack.annotation.init;
 
 		adsr1.decay = inputs.find(i => i.endpointID === 'decay');
-		attack = adsr1.decay.annotation.init;
+		decay = adsr1.decay.annotation.init;
 
 		adsr1.sustain = inputs.find(i => i.endpointID === 'sustain');
 		attack = adsr1.sustain.annotation.init;
+		sustain = adsr1.sustain.annotation.init;
 
 		adsr1.release = inputs.find(i => i.endpointID === 'release');
 		release = adsr1.release.annotation.init;
@@ -90,7 +104,7 @@
 				<div class="flexbox"><Slider orientation="vertical" 
 					min={adsr1?.attack?.annotation?.min} 
 					max={adsr1?.attack?.annotation?.max}
-					step={adsr1?.sustain?.annotation?.step}
+					step={adsr1?.attack?.annotation?.step}
 					bind:value={attack} 
 				/>
 					A
@@ -98,11 +112,12 @@
 				<div class="flexbox"><Slider orientation="vertical" 
 					min={adsr1?.decay?.annotation?.min} 
 					max={adsr1?.decay?.annotation?.max}
-					step={adsr1?.sustain?.annotation?.step}
+					step={adsr1?.decay?.annotation?.step}
 					bind:value={decay} />
 					D
 				</div>
-				<div class="flexbox"><Slider orientation="vertical" min={adsr1?.sustain?.annotation?.min} 
+				<div class="flexbox"><Slider orientation="vertical" 
+					min={adsr1?.sustain?.annotation?.min} 
 					max={adsr1?.sustain?.annotation?.max}
 					step={adsr1?.sustain?.annotation?.step}
 					bind:value={sustain} />
@@ -111,7 +126,7 @@
 				<div class="flexbox"><Slider orientation="vertical"
 					min={adsr1?.release?.annotation?.min} 
 					max={adsr1?.release?.annotation?.max}
-					step={adsr1?.sustain?.annotation?.step}
+					step={adsr1?.release?.annotation?.step}
 					bind:value={release} />
 					R
 				</div>
@@ -124,10 +139,10 @@
 	<div class="adsr2">
 			ENV2
 			<div class="flexline" style="height:150px;">
-				<div class="flexbox"><Slider orientation="vertical" value={24} />A</div>
-				<div class="flexbox"><Slider orientation="vertical" value={50} />D</div>
-				<div class="flexbox"><Slider orientation="vertical" value={76} />S</div>
-				<div class="flexbox"><Slider orientation="vertical" value={24} />R</div>
+				<div class="flexbox"><Slider disabled orientation="vertical" value={24} />A</div>
+				<div class="flexbox"><Slider disabled orientation="vertical" value={50} />D</div>
+				<div class="flexbox"><Slider disabled orientation="vertical" value={76} />S</div>
+				<div class="flexbox"><Slider disabled orientation="vertical" value={24} />R</div>
 				<div class="flexbox">
 						<button class="pt" state="active">snap</button>
 						<button class="pt" state="active">slow</button>
@@ -149,12 +164,19 @@
 				
 				<div class="flexbox">
 					<Knob value={0} min={0} max={4} step={1} strokeWidth={10} primaryColor="#E844C3"
+						disabled
 								valueDisplayFunction={v=>shape[v]}></Knob>
 					<div>Shape</div>
 				</div>
 				
 				<div class="flexbox">
-					<Knob value={12} min={-60} max={60} step={1} strokeWidth={10} primaryColor="#E844C3" />
+					<Knob bind:value={osc1Volume} 
+						min={osc1?.volume?.annotation?.min} 
+						max={osc1?.volume?.annotation?.max}
+						step={osc1?.volume?.annotation?.step}
+						strokeWidth={10} primaryColor="#E844C3"
+						valueDisplayFunction={v=> v.toFixed(2)}
+					/>
 					<div>Volume</div>
 				</div>
 			</div>
@@ -167,19 +189,34 @@
 						bind:value={osc2FreqIn} 
 						min={osc2?.freq?.annotation?.min} 
 						max={osc2?.freq?.annotation?.max}
-						step={10} strokeWidth={10} primaryColor="#E844C3" />
+						step={10} strokeWidth={10} primaryColor="#E844C3"
+						valueDisplayFunction={v=> (v/100).toFixed(2)}
+						/>
 					<div>Tuning</div>
 					<button state="active">sync</button>
 				</div>
 				
 				<div class="flexbox">
-					<Knob value={0} min={0} max={4} step={1} strokeWidth={10} primaryColor="#E844C3"
-								valueDisplayFunction={v=>shape[v]}></Knob>
+					<!-- valueDisplayFunction={v=>shape[v]} -->
+					<Knob bind:value={osc2Shape} 
+						min={osc2?.shape?.annotation?.min} 
+						max={osc2?.shape?.annotation?.max}
+						step={osc2?.shape?.annotation?.step}
+						strokeWidth={10} primaryColor="#E844C3"
+						valueDisplayFunction={v=> v.toFixed(2)}
+					>
+					</Knob>
 					<div>Shape</div>
 				</div>
 				
 				<div class="flexbox">
-					<Knob value={12} min={-60} max={60} step={1} strokeWidth={10} primaryColor="#E844C3" />
+					<Knob bind:value={osc2Volume} 
+						min={osc2?.volume?.annotation?.min} 
+						max={osc2?.volume?.annotation?.max}
+						step={osc2?.volume?.annotation?.step}
+						strokeWidth={10} primaryColor="#E844C3"
+						valueDisplayFunction={v=> v.toFixed(2)}
+					/>
 					<div>Volume</div>
 				</div>
 			</div>
