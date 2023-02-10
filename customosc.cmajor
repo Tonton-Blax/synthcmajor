@@ -1,0 +1,66 @@
+
+namespace std::oscillators {
+    processor MorphableOsc (using FrameType,
+                                  Shape initialShape = Shape::sawtoothUp,
+                                  float32 initialFrequency = 440.0f, float detuning = 0.1f )
+    {
+        input event float32 frequencyIn    [[ name: "Frequency", min: 0, max: 24000.0f, init: 440.0f, unit: "Hz" ]];
+        input event float32 shapeIn        [[ name: "Shape",     min: 0, max: 4,        init: 0,      text: "Sine|Triangle|Square|Ramp Up|Ramp Down"]];
+
+        output stream FrameType out;
+        float delta;
+        float updatedFreq;
+
+        //==============================================================================
+        void init() { 
+            polyblep.setFrequency (processor.frequency, initialFrequency); 
+            polyblep2.setFrequency (processor.frequency, initialFrequency + detuning ); 
+        }
+        event frequencyIn (float newFrequency)  { 
+            updatedFreq = newFrequency; 
+            polyblep.setFrequency (processor.frequency, updatedFreq); 
+            polyblep2.setFrequency (processor.frequency, updatedFreq + detuning ); 
+        }
+        event shapeIn (float32 v)
+        {
+            delta = 1 - (std::intrinsics::ceil(v) - v );
+
+            if (v >= 0 && v < 1) { currentShape = Shape::sine; }
+            else if (v >= 1 && v < 2) { currentShape = Shape::triangle; }
+            else if (v >= 2 && v < 3) { currentShape = Shape::square; }
+            else if (v >= 3 && v < 4) { currentShape = Shape::sawtoothUp; } 
+            else currentShape = Shape::sawtoothDown;
+
+            if (delta > 0.997f) {
+                delta = 0.01f;
+                polyblep.setFrequency (processor.frequency, updatedFreq); 
+                polyblep2.setFrequency (processor.frequency, updatedFreq); 
+            }
+        }
+
+        PolyblepState polyblep;
+        PolyblepState polyblep2;
+        Shape currentShape = initialShape;
+
+        void main()
+        {
+            loop
+            {
+                if (currentShape == Shape::sine) {
+                    out <- lerp (polyblep.nextSine(), polyblep2.nextTriangle(), delta);
+                }
+                else if (currentShape == Shape::triangle) {
+                    out <- lerp (polyblep2.nextTriangle(), polyblep.nextSquare(), delta);
+                }
+                else if (currentShape == Shape::square) {
+                    out <- lerp (polyblep.nextSquare(), polyblep2.nextSawtooth(), delta);
+                }
+                else if (currentShape == Shape::sawtoothUp) {
+                    out <- lerp (polyblep2.nextSawtooth(), -polyblep.nextSawtooth(), delta);
+                } else out <- lerp (-polyblep.nextSawtooth(), polyblep2.nextSawtooth(), delta * 2);
+
+                advance();
+            }
+        }
+    }
+}

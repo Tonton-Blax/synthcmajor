@@ -5,7 +5,7 @@ graph SynthMain [[ main ]]
     input freqHandler.osc2FreqIn [[ name: "Osc2FreqIn",  min: 40, max: 40000, init:  20000, type: "float",  step: 1 ]];
     input freqHandler.osc1Volume [[ name: "osc1Volume",  min: 0, max: 1, init:  0.5, type: "float",  step: 0.01 ]];
     input freqHandler.osc2Volume [[ name: "osc2Volume",  min: 0, max: 1, init:  0.5, type: "float",  step: 0.01 ]];
-    input freqHandler.osc2Shape [[ name: "osc2Shape",  min: 0, max: 5, init:  0.5, type: "float",  step: 0.1 ]];
+    input freqHandler.osc2Shape [[ name: "osc2Shape",  min: 0, max: 5, init:  0.5, type: "float",  step: 0.01 ]];
     input event float release [[ name: "release",  min: 0.001, max: 500, init:  1, type: "float",  step: 0.1 ]];
     input event float attack [[ name: "attack",  min: 0, max: 500, init:  1, type: "float",  step: 0.1 ]];
     input event float decay [[ name: "decay",  min: 0, max: 100, init:  1, type: "float",  step: 0.1 ]];
@@ -69,7 +69,7 @@ graph Voice
         attenuator = std::levels::DynamicGain (float);
         ntf = NoteToFrequency;
         osc1 = std::oscillators::Sine (float, 440);
-        osc2 = std::oscillators::PolyblepOscillator (float, std::oscillators::Shape::sawtoothUp, 440);
+        osc2 = std::oscillators::MorphableOsc (float, std::oscillators::Shape::sawtoothUp, 440);
         smooth = std::filters::tpt::svf::Processor(std::filters::tpt::svf::Mode::highPass, 60, 5);
     }
 

@@ -8,7 +8,7 @@
     "manufacturer":     "Ttb",
     "isInstrument":     true,
 
-    "source":           ["ttbSynth.cmajor","adsre.cmajor"],
+    "source":           ["ttbSynth.cmajor","adsre.cmajor","customosc.cmajor"],
     "view": {
         "src": "web_ui/dist/entry.js",
         "width": 1210,
